@@ -11,6 +11,8 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 CORS(app)
 
+locations = {}
+
 pp('Server Start')
 
 @app.route('/')
@@ -44,7 +46,23 @@ def handle_command(data):
     command = data.get('command')
     args = data.get('args')
     print(f"Received command: {command} with args: {args}")
-    emit('response', {'status': 'received', 'command': command, 'args': args})
 
+    if command == 'addLocation':
+        locations[args] = {'name': args}
+        emit('response', {'status': 'added', 'command': command, 'location': args})
+    elif command == 'goToLocation':
+        if args in locations:
+            emit('response', {'status': 'navigating', 'command': command, 'location': args})
+        else:
+            emit('response', {'status': 'not found', 'command': command, 'location': args})
+    elif command == 'deleteLocation':
+        if args in locations:
+            del locations[args]
+            emit('response', {'status': 'deleted', 'command': command, 'location': args})
+        else:
+            emit('response', {'status': 'not found', 'command': command, 'location': args})
+    else:
+        emit('response', {'status': 'unknown command', 'command': command})
+        
 if __name__ == '__main__':
     socketio.run(app, debug=True)
