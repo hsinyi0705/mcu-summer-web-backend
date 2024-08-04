@@ -1,27 +1,32 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit  
-
-from myUtil import pp
 import datetime
 import json
-
+from myUtil import pp
 
 app = Flask(__name__)
-# 初始化 Flask-SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*") # 初始化 Flask-SocketIO
+
 CORS(app)
 
-# JSON 文件路径
+
 JSON_FILE = 'temi.json'
 
-# locations = {}
+# def pp(message):
+#     print(message)
 
-pp('Server Start')
+pp("Server Start")
 
 def load_data():
-    with open(JSON_FILE, 'r') as file:
-        return json.load(file)
+    try:
+        with open(JSON_FILE, 'r') as file:
+            data = json.load(file)
+            if not data or "_default" not in data:
+                data = {"_default": {}}
+            return data
+    except FileNotFoundError:
+        return {"_default": {}}
 
 def save_data(data):
     with open(JSON_FILE, 'w') as file:
@@ -38,20 +43,44 @@ def get_data():
 
 @app.route('/api/button-click', methods=['POST'])
 def button_click():
-    t = str(datetime.datetime.now())
-    # t=str(datetime.datetime.now().year)+"/"+str(datetime.datetime.now().month)+"/"+str(datetime.datetime.now().day)+" "+str(datetime.datetime.now().hour)+":"+str(datetime.datetime.now().minute)+":"+str(datetime.datetime.now().second)
-    print(f"receive a request from {request.remote_addr} at {t}")
+    t = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ip_addr = request.remote_addr
+    print(f"[{t}] - [{ip_addr}] - receive a request")
     return jsonify({'status': 'success', 'timestamp': t})
 
 @app.route('/api/locations', methods=['GET'])
 def get_locations():
     data = load_data()
-    print(data)  # 打印加载的 JSON 数据
     locations = list(data["_default"].keys())
-    print(locations)  # 打印提取的地理位置列表
     return jsonify({"locations": locations})
 
-# 处理 WebSocket 连接
+def handle_add_location(args):
+    data = load_data()
+    data["_default"][args] = {
+        'id': '',
+        'ip': '',
+        'selected_function': 'addLocation',
+        'location': args
+    }
+    save_data(data)
+    return {'status': 'added', 'command': 'addLocation', 'location': args}
+
+def handle_go_to_location(args):
+    data = load_data()
+    if args in data["_default"]:
+        return {'status': 'navigating', 'command': 'goToLocation', 'location': args}
+    else:
+        return {'status': 'not found', 'command': 'goToLocation', 'location': args}
+
+def handle_delete_location(args):
+    data = load_data()
+    if args in data["_default"]:
+        del data["_default"][args]
+        save_data(data)
+        return {'status': 'deleted', 'command': 'deleteLocation', 'location': args}
+    else:
+        return {'status': 'not found', 'command': 'deleteLocation', 'location': args}
+
 @socketio.on('connect')
 def handle_connect():
     print("Client connected")
@@ -64,28 +93,19 @@ def handle_disconnect():
 def handle_command(data):
     command = data.get('command')
     args = data.get('args')
-    print(f"Received command: {command} with args: {args}")
-
-    data = load_data()
+    t = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{t}] - [COMMAND] - Received command: {command} with args: {args}")
+    
+    response = {'status': 'unknown command', 'command': command}
+    
     if command == 'addLocation':
-        data["_default"][args] = {'name': args}
-        save_data(data)
-        emit('response', {'status': 'added', 'command': command, 'location': args})
+        response = handle_add_location(args)
     elif command == 'goToLocation':
-        if args in data["_default"]:
-            emit('response', {'status': 'navigating', 'command': command, 'location': args})
-        else:
-            emit('response', {'status': 'not found', 'command': command, 'location': args})
+        response = handle_go_to_location(args)
     elif command == 'deleteLocation':
-        if args in data["_default"]:
-            del data["_default"][args]
-            save_data(data)
-            emit('response', {'status': 'deleted', 'command': command, 'location': args})
-        else:
-            emit('response', {'status': 'not found', 'command': command, 'location': args})
-    else:
-        emit('response', {'status': 'unknown command', 'command': command})
-        
+        response = handle_delete_location(args)
+    
+    emit('response', response)
+
 if __name__ == '__main__':
-    # socketio.run(app, debug=True)
-    socketio.run(app, debug=True, port=5000)
+    socketio.run(app, debug=False, port=5000)

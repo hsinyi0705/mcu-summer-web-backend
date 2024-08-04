@@ -1,10 +1,28 @@
 {
     "_default": {
-        "ff": {
-            "name": "ff"
+        "ss": {
+            "id": "",
+            "ip": "",
+            "selected_function": "addLocation",
+            "location": "ss"
         },
-        "gg": {
-            "name": "gg"
+        "aa": {
+            "id": "",
+            "ip": "",
+            "selected_function": "addLocation",
+            "location": "aa"
+        },
+        "cc": {
+            "id": "",
+            "ip": "",
+            "selected_function": "addLocation",
+            "location": "cc"
+        },
+        "mm": {
+            "id": "",
+            "ip": "",
+            "selected_function": "addLocation",
+            "location": "mm"
         }
     }
 }
