@@ -1,5 +1,28 @@
 {
     "_default": {
-        
+        "": {
+            "id": "",
+            "ip": "",
+            "selected_function": "addLocation",
+            "location": ""
+        },
+        "48879": {
+            "id": "",
+            "ip": "",
+            "selected_function": "addLocation",
+            "location": "48879"
+        },
+        "546": {
+            "id": "",
+            "ip": "",
+            "selected_function": "addLocation",
+            "location": "546"
+        },
+        "4565656": {
+            "id": "",
+            "ip": "",
+            "selected_function": "addLocation",
+            "location": "4565656"
+        }
     }
 }
