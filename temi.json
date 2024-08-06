@@ -1,28 +1,5 @@
 {
     "_default": {
-        "ss": {
-            "id": "",
-            "ip": "",
-            "selected_function": "addLocation",
-            "location": "ss"
-        },
-        "aa": {
-            "id": "",
-            "ip": "",
-            "selected_function": "addLocation",
-            "location": "aa"
-        },
-        "cc": {
-            "id": "",
-            "ip": "",
-            "selected_function": "addLocation",
-            "location": "cc"
-        },
-        "mm": {
-            "id": "",
-            "ip": "",
-            "selected_function": "addLocation",
-            "location": "mm"
-        }
+        
     }
 }
