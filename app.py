@@ -134,8 +134,6 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit  
 import datetime
 import json
-import socketio
-from aiohttp import web
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")  # 初始化 Flask-SocketIO
@@ -154,7 +152,7 @@ def load_data():
     except FileNotFoundError:
         return {"_default": {}}
 
-def save_data(data):#2
+def save_data(data):
     with open(JSON_FILE, 'w') as file:
         json.dump(data, file, indent=4)
 
@@ -180,58 +178,48 @@ def get_locations():
     locations = list(data["_default"].keys())
     return jsonify({"locations": locations})
 
-####################
-####################
-
-def handle_add_location(args):
-    data = load_data()#0
-    data["_default"][args] = {
-        'id': '',
-        'ip': '',
-        'selected_function': 'addLocation',
-        'location': args
-    }
-    save_data(data)#1
-    return {'id' : a_id,"ip" : b_ip,'status': 'ADD', 'command': 'addLocation', 'location': args}
-
-def handle_go_to_location(args):
+def handle_add_location(location, a_id, b_ip):
     data = load_data()
-    
-    data["_default"][args] = {
-        'id': '',
-        'ip': '',
-        'selected_function': 'goToLocation',
-        'location': args
+    data["_default"][location] = {
+        'id': a_id,  # Extracted ID
+        'ip': b_ip,  # Extracted IP
+        'selected_function': 'addLocation',
+        'location': location
     }
     save_data(data)
-    # if args in data["_default"]:
-    return {'status': 'GO', 'command': 'goToLocation', 'location': args}
-    # else:
-    #     return {'status': 'not found', 'command': 'goToLocation', 'location': args}
+    return {'status': 'ADD', 'command': 'addLocation', 'location': location}
 
-def handle_delete_location(args):
+def handle_go_to_location(location, a_id, b_ip):
     data = load_data()
-    
-    if args in data["_default"]:
-        del data["_default"][args]
-        save_data(data)
-        return {'status': 'DELETE', 'command': 'deleteLocation', 'location': args}
-    else:
-        return {'status': 'not found', 'command': 'deleteLocation', 'location': args}
+    data["_default"][location] = {
+        'id': a_id,  # Extracted ID
+        'ip': b_ip,  # Extracted IP
+        'selected_function': 'goToLocation',
+        'location': location
+    }
+    save_data(data)
+    return {'status': 'GO', 'command': 'goToLocation', 'location': location}
 
-# def handle_speak(args):
+def handle_delete_location(location):
+    data = load_data()
+    if location in data["_default"]:
+        del data["_default"][location]
+        save_data(data)
+        return {'status': 'DELETE', 'command': 'deleteLocation', 'location': location}
+    else:
+        return {'status': 'not found', 'command': 'deleteLocation', 'location': location}
+
+# Uncomment if you want to handle 'speak' command
+# def handle_speak(message):
 #     data = load_data()
-#     data["_default"][args] = {
+#     data["_default"][message] = {
 #         'id': 'ddd',
 #         'ip': '444',
 #         'selected_function': 'speak',
-#         'location': args
+#         'location': message
 #     }
 #     save_data(data)
-#     return {'status': 'SPEAK', 'command': 'speak', 'location': args}
-
-####################
-####################
+#     return {'status': 'SPEAK', 'command': 'speak', 'location': message}
 
 @socketio.on('connect')
 def handle_connect():
@@ -247,55 +235,37 @@ def handle_disconnect():
 def handle_command(data):
     command = data.get('command')
     args = data.get('args', {})
+    a_id = args.get('a_id')
+    b_ip = args.get('b_ip')
+    add_location = args.get('addLocation')
+    go_to_location = args.get('goToLocation')
+    delete_location = args.get('deleteLocation')
+    speak = args.get('speak')
+    
     t = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{t}] - [COMMAND] - Received command: {command} with args: {args}")
 
     response = {'status': 'unknown command', 'command': command}
-    
+
     if command == 'onConnect':
-        robot_id = 'id'
-        robot_ip = 'ip'
-        response = {'status': 'received', 'command': 'onConnect', 'id': robot_id, 'ip': robot_ip}
-        print(f"Received ID: {robot_id}, IP: {robot_ip}")
+        response = {'status': 'received', 'command': 'onConnect', 'id': a_id, 'ip': b_ip}
+        print(f"Received ID: {a_id}, IP: {b_ip}")
     elif command == 'addLocation':
-        response = handle_add_location(args)
+        if add_location:
+            response = handle_add_location(add_location, a_id, b_ip)
     elif command == 'goToLocation':
-        response = handle_go_to_location(args)
+        if go_to_location:
+            response = handle_go_to_location(go_to_location, a_id, b_ip)
     elif command == 'deleteLocation':
-        response = handle_delete_location(args)
+        if delete_location:
+            response = handle_delete_location(delete_location)
     # elif command == 'speak':
-    #     response = handle_speak(args)
-    
+    #     if speak:
+    #         response = handle_speak(speak)
+
     print(f"[{t}] - [COMMAND RESPONSE] - Sending response: {response}")
     emit('response', response)
-#message
-
-# @socketio.on('command')
-# def handle_command(data):
-#     command = data.get('command')
-#     args = data.get('args', {})
-#     t = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#     print(f"[{t}] - [COMMAND] - Received command: {command} with args: {args}")
-
-#     message = {'status': 'unknown command', 'command': command}
-    
-#     if command == 'onConnect':
-#         robot_id = data.get('id')
-#         robot_ip = data.get('ip')
-#         message = {'status': 'received', 'command': 'onConnect', 'id': robot_id, 'ip': robot_ip}
-#         print(f"Received ID: {robot_id}, IP: {robot_ip}")
-#     elif command == 'addLocation':
-#         message = handle_add_location(args)
-#     elif command == 'goToLocation':
-#         message = handle_go_to_location(args)
-#     elif command == 'deleteLocation':
-#         message = handle_delete_location(args)
-#     # elif command == 'speak':
-#     #     message = handle_speak(args)
-    
-#     print(f"[{t}] - [COMMAND MESSAGE] - Sending message: {message}")
-#     emit('message', message)
-
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+
