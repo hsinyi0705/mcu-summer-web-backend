@@ -136,7 +136,7 @@ import datetime
 import json
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")  # 初始化 Flask-SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')  # 初始化 Flask-SocketIO
 
 CORS(app)
 
@@ -267,5 +267,5 @@ def handle_command(data):
     emit('response', response)
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5001)
 
